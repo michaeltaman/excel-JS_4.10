@@ -1,40 +1,63 @@
-import {ExcelComponent} from '@core/ExcelComponent'
+import {createToolbar} from "@/components/toolbar/toolbar.template";
+import {$} from "@core/dom";
+import {ExcelStateComponent} from "@core/ExcelStateComponent";
+import * as actions from "@/redux/actions";
+/////import {initialToolbarState} from "@/redux/types";
+import {defaultStyles} from '@/constants'
 
-export class Toolbar extends ExcelComponent {
+export class Toolbar extends ExcelStateComponent {
   static className = 'excel__toolbar'
 
   constructor($root, options) {
     super($root, {
       name: 'Toolbar',
+      listeners: ['click'],
+      subscribe: ['currentStyles'],
       ...options
     })
   }
 
+  init() {
+    super.init()
+
+    this.$on('table:select', $cell => {
+      this.selectedID = $cell.data.id
+      //console.log(this.selectedID)
+    })
+
+  }
+
+  prepare() {
+    /////this.initState(initialToolbarState)
+    this.initState(defaultStyles)
+  }
+
+  get template() {
+    return createToolbar(this.state)
+  }
+
   toHTML() {
-    return `
-      <div class="button">
-        <i class="material-icons">format_align_left</i>
-      </div>
+    return this.template
+  }
 
-      <div class="button">
-        <i class="material-icons">format_align_center</i>
-      </div>
+  storeChanged(changes) {
+    //console.log("CHANGES: ", changes)
+    this.setState(changes.currentStyles)
+  }
 
-      <div class="button">
-        <i class="material-icons">format_align_right</i>
-      </div>
+  updateToolbarInStore(key, value) {
+    this.$dispatch(actions.changeToolbar({
+      cell: this.selectedID,
+      id: key,
+      value
+    }))
+  }
 
-      <div class="button">
-        <i class="material-icons">format_bold</i>
-      </div>
-
-      <div class="button">
-        <i class="material-icons">format_italic</i>
-      </div>
-
-      <div class="button">
-        <i class="material-icons">format_underlined</i>
-      </div>
-    `
+  onClick(event) {
+    const $target = $(event.target)
+    if($target.data.type === 'button') {
+      const value = JSON.parse($target.data.value)// to get the object
+      this.$emit('toolbar: applyStyle', value)
+    }
   }
 }
